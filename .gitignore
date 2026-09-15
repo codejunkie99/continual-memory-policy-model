@@ -1,0 +1,24 @@
+.DS_Store
+.venv/
+.venv-*/
+work/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime state and model artifacts are local/private.
+*.db
+*.db-shm
+*.db-wal
+*.safetensors
+
+# Publish only the deliberately sanitized evidence reports.
+outputs/*
+!outputs/MLX_FINETUNE_REPORT.md
+!outputs/LIVE_VALIDATION_REPORT.md
+!outputs/live-v4-active/
+outputs/live-v4-active/*
+!outputs/live-v4-active/live-evaluation.json

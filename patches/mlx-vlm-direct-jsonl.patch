@@ -1,0 +1,25 @@
+diff --git a/mlx_vlm/lora.py b/mlx_vlm/lora.py
+index 1a0e5cc..1ac49b3 100644
+--- a/mlx_vlm/lora.py
++++ b/mlx_vlm/lora.py
+@@ -3,0 +4 @@ import logging
++from pathlib import Path
+@@ -164,5 +165,13 @@ def main(args):
+-    dataset = load_dataset(
+-        args.dataset,
+-        args.dataset_config if args.dataset_config else None,
+-        split=args.split,
+-    )
++    dataset_path = Path(args.dataset).expanduser()
++    if dataset_path.is_file():
++        dataset = load_dataset(
++            "json",
++            data_files={args.split: str(dataset_path)},
++            split=args.split,
++        )
++    else:
++        dataset = load_dataset(
++            args.dataset,
++            args.dataset_config if args.dataset_config else None,
++            split=args.split,
++        )
