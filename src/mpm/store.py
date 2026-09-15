@@ -13,6 +13,7 @@ Design contract
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 import time
 import uuid
@@ -704,16 +705,23 @@ class MemoryStore:
     ) -> str:
         if kind not in {"positive", "negative", "neutral"}:
             raise PayloadError("outcome kind must be positive, negative, or neutral")
-        if not 0.0 <= float(confidence) <= 1.0:
+        value = float(value)
+        confidence = float(confidence)
+        if not math.isfinite(value) or not -1.0 <= value <= 1.0:
+            raise PayloadError("outcome value must be finite and in [-1, 1]")
+        if not math.isfinite(confidence) or not 0.0 <= confidence <= 1.0:
             raise PayloadError("outcome confidence must be in [0, 1]")
-        if kind == "positive" and float(value) < 0:
+        if kind == "positive" and value < 0:
             raise PayloadError("positive outcomes require a non-negative value")
-        if kind == "negative" and float(value) > 0:
+        if kind == "negative" and value > 0:
             raise PayloadError("negative outcomes require a non-positive value")
         weights = dict(retrieval_weights or {})
         if retrieval_id is not None:
             weights.setdefault(retrieval_id, 1.0)
-        if any(float(weight) < 0 for weight in weights.values()) or (weights and sum(weights.values()) <= 0):
+        if (
+            any(not math.isfinite(float(weight)) or float(weight) < 0 for weight in weights.values())
+            or (weights and sum(float(weight) for weight in weights.values()) <= 0)
+        ):
             raise PayloadError("retrieval contribution weights must be non-negative with a positive sum")
         for rid in weights:
             row = self.conn.execute(

@@ -45,8 +45,26 @@ interaction / image / document
   four harmful-memory probes.
 - A local MCP server for Codex and Claude Code with scoped search, safe
   observation, point reads, delayed feedback, and status tools.
+- Agent-facing MCP reads treat memory as untrusted data: instruction-override
+   phrases, fake tool-call delimiters, role tags, and invisible/bidirectional
+   characters are neutralized and reported through `injection_flags`.
+- MCP inputs are length-bounded and rate-limited per session. Delayed outcome
+   values and contribution weights must be finite; rewards are bounded to
+   `[-1, 1]` so a malformed or hostile client cannot poison credit attribution.
+- The write safety gate recognizes additional common credential and contact
+   formats (AWS, GitHub, Slack, Google API keys, JWTs, bearer tokens, and
+   phone-number-like strings).
 - Default-deny Codex/Claude/Brain/MPM history ingestion and time-ordered,
   feature-only MLX datasets. Historical statements never enter model prompts.
+
+## Remaining research gaps
+
+These are deliberate limits, not solved problems: the live gate still uses
+authored trajectories rather than a large consented corpus; history labels are
+weak supervision until downstream outcomes dominate; delayed credit is an
+auditable heuristic, not ground truth; and production generalization remains
+unproven. Keep the temporal holdout, replay mixture, poisoning review, and
+explicit promotion gate mandatory for every future adapter.
 
 ## Run the lightweight system
 

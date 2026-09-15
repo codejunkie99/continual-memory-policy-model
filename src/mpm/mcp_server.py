@@ -8,6 +8,9 @@ never requires the optional ``mcp`` package.
 
 Privacy and safety contracts reused here:
 * Harmful (PII / secret) content is refused before any model call or write.
+* Memory content returned to a host agent is neutralized as untrusted data,
+  with explicit injection flags; it is never passed through verbatim.
+* Inputs are length-bounded and every tool has a per-session rate limit.
 * Model loading is lazy; the baseline backend is dependency-free.
 * Tool output never exposes raw database or adapter paths.
 """
@@ -15,13 +18,17 @@ Privacy and safety contracts reused here:
 from __future__ import annotations
 
 import argparse
+import math
 import os
+import time
+from collections import deque
 import uuid
-from typing import Any
+from typing import Any, Callable
 
 from .baseline import BaselinePolicy, jaccard
 from .credit import attribute_outcome
 from .features import extract_features, tokenize
+from .safety import sanitize_memory_for_prompt
 from .mlx_policy import FakeMLXBackend, MlxBackend, MLXPolicy
 from .store import MemoryStore
 from .types import PayloadError, validate_action
@@ -36,6 +43,42 @@ def _lexical_score(query: str, text: str) -> float:
     return round(min(1.0, overlap + 0.3 * bonus), 6)
 
 
+MAX_QUERY_CHARS = 512
+MAX_OBSERVATION_CHARS = 8192
+MAX_MEMORY_OUTPUT_CHARS = 4000
+MAX_SCOPE_CHARS = 128
+MAX_INTENT_CHARS = 64
+MAX_CONTEXT_IDS = 32
+MAX_ID_CHARS = 128
+
+
+class _RateLimiter:
+    """Tiny sliding-window limiter; per-process and per-session."""
+
+    def __init__(self, max_calls: int, window_seconds: float, clock: Callable[[], float]):
+        self.max_calls = max_calls
+        self.window_seconds = window_seconds
+        self.clock = clock
+        self._calls: deque[float] = deque()
+
+    def allow(self) -> bool:
+        now = self.clock()
+        cutoff = now - self.window_seconds
+        while self._calls and self._calls[0] <= cutoff:
+            self._calls.popleft()
+        if len(self._calls) >= self.max_calls:
+            return False
+        self._calls.append(now)
+        return True
+
+
+def _too_long(value: object, limit: int, label: str) -> str | None:
+    text = str(value or "")
+    if len(text) > limit:
+        return f"{label} exceeds maximum length {limit}"
+    return None
+
+
 class MemoryService:
     """Callable service layer implementing the five MCP tools."""
 
@@ -47,6 +90,7 @@ class MemoryService:
         adapter: str | None = None,
         model: str | None = None,
         session_id: str | None = None,
+        clock: Callable[[], float] = time.monotonic,
     ):
         self.store = store
         self.policy = policy
@@ -54,11 +98,31 @@ class MemoryService:
         self.model = model
         self._session_id = session_id or f"s-mcp-{uuid.uuid4().hex}"
         self.store.ensure_session(self._session_id, "mcp", "user")
+        # A runaway or compromised client must not be able to fill the store,
+        # flood the policy backend, or fabricate unlimited reward signal.
+        self._limits = {
+            "search": _RateLimiter(240, 60.0, clock),
+            "observe": _RateLimiter(120, 60.0, clock),
+            "get": _RateLimiter(240, 60.0, clock),
+            "feedback": _RateLimiter(120, 60.0, clock),
+        }
 
     # -- memory_search ---------------------------------------------------
 
     def search(self, query: str, *, scope: str | None = None, limit: int = 10) -> dict[str, Any]:
         """Deterministic, scoped, bounded retrieval; logs one retrieval per hit."""
+        if not self._limits["search"].allow():
+            return {
+                "ok": False,
+                "rate_limited": True,
+                "error": "search rate limit exceeded; retry after a short delay",
+                "retrieval_ids": [],
+                "results": [],
+            }
+        if error := _too_long(query, MAX_QUERY_CHARS, "query"):
+            return {"ok": False, "error": error, "retrieval_ids": [], "results": []}
+        if error := _too_long(scope, MAX_SCOPE_CHARS, "scope"):
+            return {"ok": False, "error": error, "retrieval_ids": [], "results": []}
         limit = max(1, min(int(limit), 100))
         query = str(query or "")
         if not query.strip():
@@ -87,10 +151,19 @@ class MemoryService:
                 score=score,
             )
             retrieval_ids.append(rid)
-            results.append(
-                {"memory_id": mem["memory_id"], "score": score, "scope": mem.get("scope"), "content": mem["content"]}
+            safe_content, injection_flags = sanitize_memory_for_prompt(
+                mem["content"], max_chars=MAX_MEMORY_OUTPUT_CHARS
             )
-        return {"retrieval_ids": retrieval_ids, "results": results}
+            results.append(
+                {
+                    "memory_id": mem["memory_id"],
+                    "score": score,
+                    "scope": mem.get("scope"),
+                    "content": safe_content,
+                    "injection_flags": injection_flags,
+                }
+            )
+        return {"ok": True, "retrieval_ids": retrieval_ids, "results": results}
 
     # -- memory_observe --------------------------------------------------
 
@@ -104,11 +177,29 @@ class MemoryService:
         source_trust: str | None = None,
     ) -> dict[str, Any]:
         """Choose and execute a safe memory action for one observation."""
+        if not self._limits["observe"].allow():
+            return {
+                "ok": False,
+                "rate_limited": True,
+                "error": "observe rate limit exceeded; retry after a short delay",
+            }
+        for value, limit, label in (
+            (content, MAX_OBSERVATION_CHARS, "content"),
+            (scope, MAX_SCOPE_CHARS, "scope"),
+            (intent, MAX_INTENT_CHARS, "intent"),
+        ):
+            if error := _too_long(value, limit, label):
+                return {"ok": False, "error": error}
+        context_ids = [c for c in (context_ids or []) if isinstance(c, str)]
+        if len(context_ids) > MAX_CONTEXT_IDS:
+            return {"ok": False, "error": f"context_ids exceeds maximum count {MAX_CONTEXT_IDS}"}
+        if any(len(c) > MAX_ID_CHARS for c in context_ids):
+            return {"ok": False, "error": f"context_id exceeds maximum length {MAX_ID_CHARS}"}
         observation: dict[str, Any] = {
             "content": content,
             "scope": scope,
             "intent": intent,
-            "context_ids": [c for c in (context_ids or []) if isinstance(c, str)],
+            "context_ids": context_ids,
             "source_trust": source_trust,
         }
         action = self.policy.decide(observation, self.store)
@@ -129,15 +220,30 @@ class MemoryService:
     # -- memory_get ------------------------------------------------------
 
     def get(self, memory_id: str) -> dict[str, Any]:
+        if not self._limits["get"].allow():
+            return {
+                "memory_id": memory_id,
+                "found": False,
+                "ok": False,
+                "rate_limited": True,
+                "error": "get rate limit exceeded; retry after a short delay",
+            }
+        if error := _too_long(memory_id, MAX_ID_CHARS, "memory_id"):
+            return {"memory_id": memory_id, "found": False, "ok": False, "error": error}
         mem = self.store.get_memory(memory_id)
         if mem is None:
             return {"memory_id": memory_id, "found": False}
+        safe_content, injection_flags = sanitize_memory_for_prompt(
+            mem["content"], max_chars=MAX_MEMORY_OUTPUT_CHARS
+        )
         return {
             "memory_id": memory_id,
             "found": True,
+            "ok": True,
             "status": mem["status"],
             "scope": mem.get("scope"),
-            "content": mem["content"],
+            "content": safe_content,
+            "injection_flags": injection_flags,
         }
 
     # -- memory_feedback -------------------------------------------------
@@ -150,13 +256,30 @@ class MemoryService:
         value: float = 1.0,
         confidence: float = 1.0,
     ) -> dict[str, Any]:
+        if not self._limits["feedback"].allow():
+            return {
+                "ok": False,
+                "rate_limited": True,
+                "error": "feedback rate limit exceeded; retry after a short delay",
+            }
+        if error := _too_long(retrieval_id, MAX_ID_CHARS, "retrieval_id"):
+            return {"ok": False, "error": error}
+        try:
+            outcome_value = float(value)
+            outcome_confidence = float(confidence)
+        except (TypeError, ValueError) as exc:
+            return {"ok": False, "error": f"invalid numeric feedback: {exc}"}
+        if not math.isfinite(outcome_value) or not -1.0 <= outcome_value <= 1.0:
+            return {"ok": False, "error": "value must be finite and in [-1, 1]"}
+        if not math.isfinite(outcome_confidence) or not 0.0 <= outcome_confidence <= 1.0:
+            return {"ok": False, "error": "confidence must be finite and in [0, 1]"}
         try:
             outcome_id = self.store.record_outcome(
                 self._session_id,
                 retrieval_id=retrieval_id,
                 kind=kind,
-                value=float(value),
-                confidence=float(confidence),
+                value=outcome_value,
+                confidence=outcome_confidence,
             )
         except PayloadError as exc:
             return {"ok": False, "error": str(exc)}
