@@ -43,6 +43,10 @@ interaction / image / document
 - A 24-step stateful live gate covering all six operations, exact duplicates,
   URLs, preferences, five delayed outcomes (including a negative outcome), and
   four harmful-memory probes.
+- A local MCP server for Codex and Claude Code with scoped search, safe
+  observation, point reads, delayed feedback, and status tools.
+- Default-deny Codex/Claude/Brain/MPM history ingestion and time-ordered,
+  feature-only MLX datasets. Historical statements never enter model prompts.
 
 ## Run the lightweight system
 
@@ -114,6 +118,91 @@ PYTHONPATH=src:work/mlx-vlm-upstream .venv-mlx/bin/python -m mpm live-evaluate \
 The current MLX-VLM/Datasets combination needs the included small direct-JSONL
 loader compatibility patch.
 Training and evaluation receipts are in `outputs/MLX_FINETUNE_REPORT.md`.
+
+## Private history policy update on an external SSD
+
+Keep source code in Git and private artifacts outside the checkout. The example
+below uses an environment variable so no machine-specific path is committed:
+
+```bash
+export MPM_SSD_ROOT=/Volumes/YourSSD/continual-memory-policy-model
+mkdir -p "$MPM_SSD_ROOT"/{private,datasets,adapters,runtime,cache/huggingface,reports}
+chmod 700 "$MPM_SSD_ROOT" "$MPM_SSD_ROOT/private"
+
+mpm ingest-history \
+  --staging-db "$MPM_SSD_ROOT/private/history-staging.db" \
+  --codex-dir "$HOME/.codex/sessions" \
+  --claude-dir "$HOME/.claude/projects" \
+  --brain-dir "$HOME/.brain" \
+  --mpm-db /path/to/current-mpm.db \
+  --report ingest.json --outdir "$MPM_SSD_ROOT/reports"
+
+mpm build-history-dataset \
+  --staging-db "$MPM_SSD_ROOT/private/history-staging.db" \
+  --outdir "$MPM_SSD_ROOT/datasets/history-v1" \
+  --max-per-source 500
+
+PYTHONPATH=src python scripts/build_history_replay_mix.py \
+  --history "$MPM_SSD_ROOT/datasets/history-v1/mlx-train.jsonl" \
+  --replay outputs/mlx-policy-v4-train.jsonl \
+  --output "$MPM_SSD_ROOT/datasets/history-v1/mlx-train-replay.jsonl"
+```
+
+`ingest-history --dry-run` emits aggregate counts only. A fresh 256-bit salt is
+created beside the staging database with mode `0600`; it is never included in
+the dataset manifest. Unknown chat, assistant/tool/reasoning output, secrets,
+PII, stack traces, code blobs, and secret-bearing URLs are rejected. Brain and
+existing MPM stores are read without mutation. `--mpm-db` is repeatable.
+
+The generated `history-*.jsonl` audit rows and `mlx-*.jsonl` training rows carry
+only closed-vocabulary structural features, operation labels, and synthetic
+candidate IDs. Splits use whole chronological cohorts. These labels remain
+weak supervision until downstream outcomes provide stronger credit.
+
+Do not fine-tune on the entire imbalanced history export directly. Mix a bounded
+number of history examples per label with balanced six-operation replay, train
+a candidate adapter, evaluate the temporal test partition, and then run
+`mpm live-evaluate`. Activation is explicit and refused when the live promotion
+gate fails.
+
+## Use the memory policy from Codex and Claude Code
+
+Install the optional MCP runtime into the same Python environment as MLX. A
+normal wheel install is preferable to an editable install for long-lived MCP
+registrations:
+
+```bash
+uv pip install --python .venv-mlx/bin/python '.[mcp]'
+
+codex mcp add continual-memory-policy \
+  --env HF_HOME="$MPM_SSD_ROOT/cache/huggingface" -- \
+  "$PWD/.venv-mlx/bin/mpm-mcp" \
+  --db "$MPM_SSD_ROOT/runtime/memory.db" \
+  --policy mlx --backend mlx \
+  --model /path/to/LFM2.5-VL-3B-MLX-8bit-snapshot \
+  --adapter "$MPM_SSD_ROOT/adapters/active"
+
+claude mcp add --scope user continual-memory-policy \
+  -e HF_HOME="$MPM_SSD_ROOT/cache/huggingface" -- \
+  "$PWD/.venv-mlx/bin/mpm-mcp" \
+  --db "$MPM_SSD_ROOT/runtime/memory.db" \
+  --policy mlx --backend mlx \
+  --model /path/to/LFM2.5-VL-3B-MLX-8bit-snapshot \
+  --adapter "$MPM_SSD_ROOT/adapters/active"
+```
+
+The server exposes `memory_search`, `memory_observe`, `memory_get`,
+`memory_feedback`, and `memory_status` over stdio or streamable HTTP. Model
+loading is lazy, database/adapter paths are not returned by tools, searches are
+scoped and bounded, and each retrieval gets an ID that can receive delayed
+positive or negative feedback.
+
+The first local history update trained 483 steps from the SSD-resident model:
+195 bounded history-derived rows plus 288 balanced replay rows. It retained
+25/25 accuracy on a deterministic temporal sample. On the full stateful gate it
+scored 23/24 operation accuracy, 0.979 macro-F1, 100% structured validity,
+0 harmful memories, 0 prompt leakage, and 0.9625 downstream utility. That is a
+local engineering gate, not evidence of general research-quality performance.
 
 ## Alternative LEAP CUDA job
 

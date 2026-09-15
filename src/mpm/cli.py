@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import secrets
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,12 +17,63 @@ from .credit import reconcile_all
 from .consolidate import build_consolidation
 from .eval import PromotionGate, evaluate
 from .export import export_all
+from .history.build import PrivacyError, build_dataset
+from .history.ingest import IngestConfig, ingest_sources
+from .history.staging import HistoryStagingStore
 from .live_eval import run_live_evaluation
 from .mlx_policy import FakeMLXBackend, MlxBackend, MLXPolicy
 from .store import MemoryStore
 from .train.config import TrainConfig
 from .train.dryrun import dry_run
 from .types import Action, Op
+
+
+def _parse_time(value: str | None) -> float | None:
+    """Accept an epoch float or an ISO-8601 string for since/until filters."""
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        pass
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        raise SystemExit(f"invalid time value: {value!r}")
+
+
+def _parse_ratios(value: str) -> list[tuple[str, float]]:
+    parts = [p.strip() for p in value.split(",") if p.strip()]
+    out: list[tuple[str, float]] = []
+    for part in parts:
+        if "=" in part:
+            name, weight = part.split("=", 1)
+        else:
+            raise SystemExit(f"invalid ratios entry {part!r}; expected name=weight")
+        out.append((name.strip(), float(weight)))
+    if not out or sum(w for _, w in out) <= 0:
+        raise SystemExit("ratios must be a non-empty list with a positive sum")
+    return out
+
+
+def _history_salt(staging_db: str, salt_file: str | None, *, dry_run: bool) -> str:
+    """Load or create a private deduplication salt beside the staging DB."""
+    if dry_run:
+        return "dry-run-not-persisted"
+    path = Path(salt_file) if salt_file else Path(str(staging_db) + ".salt")
+    if path.exists():
+        value = path.read_text(encoding="utf-8").strip()
+        if len(value) < 32:
+            raise SystemExit(f"salt file is too short: {path}")
+        return value
+    path.parent.mkdir(parents=True, exist_ok=True)
+    value = secrets.token_hex(32)
+    path.write_text(value + "\n", encoding="utf-8")
+    os.chmod(path, 0o600)
+    return value
 
 
 def _write_report(name: str, data: dict[str, Any], outdir: Path) -> Path:
@@ -180,6 +234,62 @@ def _cmd_consolidate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_ingest_history(args: argparse.Namespace) -> int:
+    db = ":memory:" if args.dry_run else args.staging_db
+    salt = _history_salt(args.staging_db, args.salt_file, dry_run=args.dry_run)
+    staging = HistoryStagingStore(db, salt=salt)
+    cfg = IngestConfig(
+        salt=salt,
+        max_per_source=args.max_per_source,
+        since=_parse_time(args.since),
+        until=_parse_time(args.until),
+    )
+    try:
+        report = ingest_sources(
+            staging,
+            codex_dir=args.codex_dir,
+            claude_dir=args.claude_dir,
+            brain_dir=args.brain_dir,
+            mpm_db=args.mpm_db,
+            dry_run=args.dry_run,
+            cfg=cfg,
+        )
+        data = report.to_dict()
+        if not args.dry_run:
+            data["staging_counts"] = staging.counts()
+    finally:
+        staging.close()
+    if args.report:
+        path = _write_report(args.report, data, Path(args.outdir))
+        print(f"ingestion report -> {path}")
+    print(json.dumps(data, indent=2, sort_keys=True))
+    return 0
+
+
+def _cmd_build_history_dataset(args: argparse.Namespace) -> int:
+    staging = HistoryStagingStore(args.staging_db)
+    try:
+        manifest = build_dataset(
+            staging,
+            args.outdir,
+            ratios=_parse_ratios(args.ratios) if args.ratios else None,
+            time_bucket=args.time_bucket,
+            max_per_source=args.max_per_source,
+            seed=args.seed,
+            replay_dirs=args.replay_dir or None,
+            max_replay=args.max_replay,
+        )
+    except PrivacyError as exc:
+        staging.close()
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    staging.close()
+    path = _write_report("history-dataset-manifest.json", manifest, Path(args.outdir))
+    print(f"history dataset built -> {path}")
+    print(json.dumps(manifest, indent=2, sort_keys=True))
+    return 0
+
+
 def _build_live_policy(args: argparse.Namespace):
     """Construct the policy for a live trajectory run without eager MLX imports."""
     if args.policy == "baseline":
@@ -303,6 +413,32 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--seed", type=int, default=42)
     sp.add_argument("--outdir", default="outputs")
     sp.set_defaults(func=_cmd_live_evaluate)
+
+    sp = sub.add_parser("ingest-history", help="privacy-safe streaming history ingestion")
+    sp.add_argument("--staging-db", default="outputs/history-staging.db")
+    sp.add_argument("--codex-dir", help="directory of Codex session JSONL")
+    sp.add_argument("--claude-dir", help="directory of Claude Code project JSONL")
+    sp.add_argument("--brain-dir", help="directory of Brain markdown / JSONL notes")
+    sp.add_argument("--mpm-db", action="append", default=[], help="existing MPM SQLite store; repeatable")
+    sp.add_argument("--dry-run", action="store_true", help="count only; do not write the staging store")
+    sp.add_argument("--max-per-source", type=int, default=None, help="per-source cap")
+    sp.add_argument("--since", default=None, help="epoch or ISO-8601 lower bound")
+    sp.add_argument("--until", default=None, help="epoch or ISO-8601 upper bound")
+    sp.add_argument("--salt-file", default=None, help="private salt file; defaults beside --staging-db")
+    sp.add_argument("--report", default=None, help="write the report to this filename under --outdir")
+    sp.add_argument("--outdir", default="outputs")
+    sp.set_defaults(func=_cmd_ingest_history)
+
+    sp = sub.add_parser("build-history-dataset", help="build a weak-supervision policy dataset from ingested history")
+    sp.add_argument("--staging-db", required=True)
+    sp.add_argument("--outdir", required=True)
+    sp.add_argument("--ratios", default=None, help="comma-separated name=weight splits")
+    sp.add_argument("--time-bucket", type=float, default=86_400.0, help="seconds per temporal cohort")
+    sp.add_argument("--max-per-source", type=int, default=None)
+    sp.add_argument("--seed", default="mpm-history-v1")
+    sp.add_argument("--replay-dir", action="append", default=[], help="prior history dataset directory; repeatable")
+    sp.add_argument("--max-replay", type=int, default=0)
+    sp.set_defaults(func=_cmd_build_history_dataset)
 
     return p
 

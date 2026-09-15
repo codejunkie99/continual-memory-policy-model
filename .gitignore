@@ -1,6 +1,7 @@
 .DS_Store
 .venv/
 .venv-*/
+/build/
 work/
 __pycache__/
 *.py[cod]
@@ -14,6 +15,12 @@ __pycache__/
 *.db-shm
 *.db-wal
 *.safetensors
+
+# Privacy-sensitive history ingestion staging and derived dataset artifacts.
+*.history-staging.db
+*.history-staging.db.salt
+history-*.jsonl
+history-dataset-manifest.json
 
 # Publish only the deliberately sanitized evidence reports.
 outputs/*

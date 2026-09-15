@@ -12,6 +12,9 @@ license = { text = "MIT" }
 authors = [{ name = "MPM Research" }]
 
 [project.optional-dependencies]
+mcp = [
+    "mcp>=1.12,<2",
+]
 train = [
     "torch>=2.2",
     "transformers>=5.0.0",
@@ -24,6 +27,7 @@ train = [
 
 [project.scripts]
 mpm = "mpm.cli:main"
+mpm-mcp = "mpm.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
