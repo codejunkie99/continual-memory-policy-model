@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f6f6f8">
+  <title>Memory Center</title>
+  <link rel="stylesheet" href="/assets/console.css">
+  <script src="/assets/console.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a href="#overview" class="brand" aria-label="Memory Center home">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2.8 3.7 7.1 12 11.4l8.3-4.3L12 2.8Z"/>
+          <path d="m3.7 11.1 8.3 4.3 8.3-4.3M3.7 15.1l8.3 4.3 8.3-4.3"/>
+        </svg>
+        <span>Memory Center</span>
+      </a>
+
+      <div class="workspace-chip" aria-label="Current workspace">
+        <span class="workspace-dot" aria-hidden="true"></span>
+        <span><strong>Local research</strong><small>Experimental</small></span>
+      </div>
+
+      <nav aria-label="Main navigation">
+        <p class="nav-label">Inspect</p>
+        <a href="#overview" data-page="overview">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 10.2 10 4.5l6.5 5.7v5.3a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-5.3Z"/><path d="M8 16.5v-4h4v4"/></svg>
+          <span>Overview</span>
+        </a>
+        <a href="#memories" data-page="memories">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5.5h12v10H4z"/><path d="M6.5 3.5h7M7 8h6M7 11h6M7 14h3"/></svg>
+          <span>Memories</span>
+        </a>
+        <a href="#decisions" data-page="decisions">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5v3M10 13.5v3M3.5 10h3M13.5 10h3"/><circle cx="10" cy="10" r="3.5"/></svg>
+          <span>Decisions</span>
+        </a>
+        <a href="#audit" data-page="audit">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 5a5 5 0 1 1-4.3 2.4"/><path d="M3.5 4.5v3h3M10 7.5V10l2 1.2"/></svg>
+          <span>History</span>
+        </a>
+        <p class="nav-label">Model</p>
+        <a href="#checkpoints" data-page="checkpoints">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5 15.8 7v6L10 16.5 4.2 13V7L10 3.5Z"/><path d="m4.4 7.1 5.6 3.4 5.6-3.4M10 10.5v6"/></svg>
+          <span>Learning</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="local-status"><span aria-hidden="true"></span><strong>Local only</strong></div>
+        <p>Read-only view of the memory database.</p>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div class="breadcrumb"><span>MPM</span><i aria-hidden="true">/</i><strong id="page-label">Overview</strong></div>
+        <div class="topbar-actions">
+          <span class="experimental-badge">Experimental</span>
+          <label class="sr-only" for="theme">Appearance</label>
+          <select id="theme" aria-label="Appearance">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="system">System</option>
+          </select>
+          <button id="refresh" class="icon-button" type="button" aria-label="Refresh local data" title="Refresh local data">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.2 6.3A6 6 0 1 0 16 12"/><path d="M12.5 6.5h3v-3"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <main id="main" tabindex="-1"></main>
+
+      <footer>
+        <span>This console can inspect memories. It cannot change them.</span>
+        <span id="updated">Connecting to local data</span>
+      </footer>
+    </div>
+  </div>
+
+  <dialog id="memory-dialog" aria-labelledby="detail-title">
+    <div class="dialog-top">
+      <div><span class="dialog-kicker">Memory inspector</span><h2 id="detail-title">Memory record</h2></div>
+      <button id="close-detail" class="icon-button" type="button" aria-label="Close memory record" title="Close">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 5.5 9 9M14.5 5.5l-9 9"/></svg>
+      </button>
+    </div>
+    <div id="detail-body"></div>
+  </dialog>
+
+  <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+  <noscript><p class="notice">Enable JavaScript to load memories from this computer.</p></noscript>
+</body>
+</html>

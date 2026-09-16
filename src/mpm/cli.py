@@ -343,6 +343,31 @@ def _cmd_live_evaluate(args: argparse.Namespace) -> int:
     return 0 if decision["approved"] else 1
 
 
+def _cmd_console(args: argparse.Namespace) -> int:
+    from .console.server import is_loopback, make_server
+
+    store = MemoryStore(args.db)
+    server = make_server(store, host=args.host, port=args.port)
+    bound_host, bound_port = server.server_address[:2]
+    display_host = bound_host if is_loopback(args.host) else args.host
+    print(f"Memory Center (read-only) serving at http://{display_host}:{bound_port}")
+    print(f"Database counts: {json.dumps(store.counts(), sort_keys=True)}")
+    if not is_loopback(args.host):
+        print(
+            "warning: binding to a non-loopback address exposes the console on the network",
+            file=sys.stderr,
+        )
+    print("Press Ctrl+C to stop.")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nstopped.")
+    finally:
+        server.server_close()
+        store.close()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="mpm", description="Memory Policy Model")
     sub = p.add_subparsers(dest="command", required=True)
@@ -376,6 +401,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--limit", type=int, default=100)
     sp.add_argument("--types", nargs="*")
     sp.set_defaults(func=_cmd_inspect)
+
+    sp = sub.add_parser("console", help="serve the read-only local Memory Center")
+    sp.add_argument("--db", default=os.environ.get("MPM_DB", "outputs/mpm.db"))
+    sp.add_argument("--host", default=os.environ.get("MPM_CONSOLE_HOST", "127.0.0.1"))
+    sp.add_argument("--port", type=int, default=int(os.environ.get("MPM_CONSOLE_PORT", "8000")))
+    sp.set_defaults(func=_cmd_console)
 
     sp = sub.add_parser("train-dry-run", help="validate datasets/config without ML imports")
     sp.add_argument("--data-dir", required=True)

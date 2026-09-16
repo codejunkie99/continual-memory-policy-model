@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Gated policy learning loop</title><desc id="desc">Outcome-labelled trajectories are combined with replay, trained into a candidate, evaluated on held-out tests, reviewed by a human, and either promoted or returned to replay.</desc>
+  <defs><style>
+    .bg{fill:#f6f6f8}.panel{fill:#fff;stroke:#dedee4;stroke-width:1.5}.soft{fill:#ececf7;stroke:#c9cae8}.goodbox{fill:#e8f3ed;stroke:#bed8c9}.badbox{fill:#f8e8e8;stroke:#e2bebe}.ink{fill:#252529}.muted{fill:#74747d}.accent{fill:#6e75bf}.green{fill:#39785a}.red{fill:#a74444}.amber{fill:#946e2d}.flow{fill:none;stroke:#6e75bf;stroke-width:2.2;marker-end:url(#a)}.return{fill:none;stroke:#8c8c96;stroke-width:1.6;stroke-dasharray:6 6;marker-end:url(#g)}text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.h1{font-size:29px;font-weight:700;letter-spacing:-.5px}.h2{font-size:15px;font-weight:700}.body{font-size:12.5px}.small{font-size:10.5px}.eye{font-size:11px;font-weight:700;letter-spacing:1.2px}.mono{font-family:ui-monospace,Menlo,monospace;font-size:10.5px}
+  </style><marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0v6l8-3z" fill="#6e75bf"/></marker><marker id="g" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0v6l8-3z" fill="#8c8c96"/></marker></defs>
+  <rect class="bg" width="1200" height="720" rx="18"/><text class="eye accent" x="50" y="44">PERIODIC, NOT PER-CONVERSATION</text><text class="h1 ink" x="50" y="79">A candidate earns promotion through evidence</text><text class="body muted" x="50" y="105">The system learns memory-management policy from delayed consequences while retaining difficult historical cases.</text>
+
+  <rect class="panel" x="48" y="148" width="220" height="142" rx="13"/><text class="eye accent" x="72" y="178">01 · COLLECT</text><text class="h2 ink" x="72" y="207">Outcome trajectories</text><text class="small muted" x="72" y="231">observation + decision</text><text class="small muted" x="72" y="250">retrieval + task result</text><text class="small muted" x="72" y="269">reward + confidence</text>
+  <path class="flow" d="M278 219 H330"/>
+  <rect class="panel" x="340" y="148" width="220" height="142" rx="13"/><text class="eye accent" x="364" y="178">02 · MIX</text><text class="h2 ink" x="364" y="207">Training buffer</text><text class="small muted" x="364" y="231">all new examples</text><text class="small muted" x="364" y="250">balanced replay</text><text class="small muted" x="364" y="269">negative + difficult cases</text>
+  <path class="flow" d="M570 219 H622"/>
+  <rect class="soft" x="632" y="148" width="220" height="142" rx="13"/><text class="eye accent" x="656" y="178">03 · TRAIN</text><text class="h2 ink" x="656" y="207">LoRA candidate</text><text class="small muted" x="656" y="231">SFT on valid actions</text><text class="small muted" x="656" y="250">preference learning later</text><text class="small muted" x="656" y="269">versioned artifact + lineage</text>
+  <path class="flow" d="M862 219 H914"/>
+  <rect class="panel" x="924" y="148" width="228" height="142" rx="13"/><text class="eye accent" x="948" y="178">04 · EVALUATE</text><text class="h2 ink" x="948" y="207">Held-out gates</text><text class="small muted" x="948" y="231">temporal holdout</text><text class="small muted" x="948" y="250">authored live scenario</text><text class="small muted" x="948" y="269">adversarial safety probes</text>
+
+  <rect class="panel" x="48" y="345" width="704" height="250" rx="14"/><text class="eye accent" x="72" y="378">RELEASE SCORECARD</text>
+  <line x1="72" y1="399" x2="728" y2="399" stroke="#dedee4"/>
+  <text class="small muted" x="72" y="427">Utility vs active policy</text><text class="mono ink" x="632" y="427">must not regress</text>
+  <text class="small muted" x="72" y="459">Operation accuracy + macro F1</text><text class="mono ink" x="632" y="459">thresholded</text>
+  <text class="small muted" x="72" y="491">Structured action validity</text><text class="mono ink" x="632" y="491">required</text>
+  <text class="small muted" x="72" y="523">Harmful memory + privacy leakage</text><text class="mono red" x="632" y="523">zero target</text>
+  <text class="small muted" x="72" y="555">Latency + storage + replay retention</text><text class="mono ink" x="632" y="555">reported</text>
+  <text class="small amber" x="72" y="579">Passing this local scorecard is engineering evidence, not proof of production generalization.</text>
+
+  <path class="flow" d="M1038 300 V352"/>
+  <rect class="panel" x="822" y="362" width="330" height="98" rx="13"/><text class="eye accent" x="846" y="393">05 · HUMAN GATE</text><text class="h2 ink" x="846" y="421">Inspect metrics, data lineage, and risks</text><text class="small muted" x="846" y="442">Approval is explicit and recorded.</text>
+  <path class="flow" d="M987 470 V505"/>
+  <rect class="goodbox" x="822" y="515" width="155" height="80" rx="12"/><text class="h2 green" x="846" y="548">Promote</text><text class="small muted" x="846" y="570">activate + keep rollback</text>
+  <rect class="badbox" x="997" y="515" width="155" height="80" rx="12"/><text class="h2 red" x="1021" y="548">Reject</text><text class="small muted" x="1021" y="570">record reasons</text>
+  <path class="return" d="M1075 605 C1075 671 454 674 454 603"/>
+  <text class="small muted" x="673" y="659">Rejected, drifted, and hard examples feed the next replay mixture.</text>
+  <rect class="soft" x="48" y="625" width="330" height="48" rx="10"/><text class="mono accent" x="72" y="654">TRAINING COMPLETE ≠ DEPLOYED</text>
+</svg>

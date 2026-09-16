@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">Implementation map</title><desc id="desc">A layered diagram maps the checked-in agent interfaces, safety and policy runtime, event-sourced store, learning pipeline, and evidence artifacts.</desc>
+  <defs><style>
+    .bg{fill:#f6f6f8}.panel{fill:#fff;stroke:#dedee4;stroke-width:1.5}.soft{fill:#ececf7;stroke:#c9cae8}.ink{fill:#252529}.muted{fill:#74747d}.accent{fill:#6e75bf}.green{fill:#39785a}.amber{fill:#946e2d}.line{fill:none;stroke:#b7b7c1;stroke-width:1.7;marker-end:url(#a)}text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.h1{font-size:29px;font-weight:700;letter-spacing:-.5px}.h2{font-size:15px;font-weight:700}.body{font-size:12px}.small{font-size:10.5px}.eye{font-size:11px;font-weight:700;letter-spacing:1.2px}.mono{font-family:ui-monospace,Menlo,monospace;font-size:10.5px}
+  </style><marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0v6l8-3z" fill="#b7b7c1"/></marker></defs>
+  <rect class="bg" width="1200" height="680" rx="18"/><text class="eye accent" x="50" y="44">WHAT IS IMPLEMENTED</text><text class="h1 ink" x="50" y="79">A working scaffold with explicit evidence boundaries</text><text class="body muted" x="50" y="105">Each layer is testable on its own. Local receipts demonstrate execution, not production readiness.</text>
+
+  <text class="eye muted" x="50" y="151">INTERFACES</text>
+  <rect class="panel" x="50" y="168" width="260" height="92" rx="12"/><text class="h2 ink" x="73" y="198">Memory Center</text><text class="small muted" x="73" y="220">read-only browser UI</text><text class="mono accent" x="73" y="242">console/</text>
+  <rect class="panel" x="329" y="168" width="260" height="92" rx="12"/><text class="h2 ink" x="352" y="198">MCP server</text><text class="small muted" x="352" y="220">Codex + Claude Code tools</text><text class="mono accent" x="352" y="242">mcp_server.py</text>
+  <rect class="panel" x="608" y="168" width="260" height="92" rx="12"/><text class="h2 ink" x="631" y="198">CLI</text><text class="small muted" x="631" y="220">demo · export · evaluate · gate</text><text class="mono accent" x="631" y="242">cli.py</text>
+  <rect class="panel" x="887" y="168" width="263" height="92" rx="12"/><text class="h2 ink" x="910" y="198">History staging</text><text class="small muted" x="910" y="220">default-deny private ingestion</text><text class="mono accent" x="910" y="242">history/</text>
+
+  <path class="line" d="M180 270 V302"/><path class="line" d="M459 270 V302"/><path class="line" d="M738 270 V302"/><path class="line" d="M1018 270 V302"/>
+  <text class="eye muted" x="50" y="318">RUNTIME</text>
+  <rect class="soft" x="50" y="335" width="354" height="116" rx="13"/><text class="h2 ink" x="74" y="367">Policy</text><text class="small muted" x="74" y="389">deterministic baseline or MLX LFM2.5-VL</text><text class="small muted" x="74" y="408">strict native tool-call parser</text><text class="mono accent" x="74" y="430">baseline.py · mlx_policy.py</text>
+  <rect class="panel" x="423" y="335" width="354" height="116" rx="13"/><text class="h2 ink" x="447" y="367">Safety + trusted executor</text><text class="small muted" x="447" y="389">PII/secret refusal · injection neutralization</text><text class="small muted" x="447" y="408">bounds · rate limits · action validation</text><text class="mono accent" x="447" y="430">safety.py · types.py</text>
+  <rect class="panel" x="796" y="335" width="354" height="116" rx="13"/><text class="h2 ink" x="820" y="367">Event-sourced store</text><text class="small muted" x="820" y="389">revisions · links · soft deletion · retrievals</text><text class="small muted" x="820" y="408">outcomes · credit · checkpoints</text><text class="mono accent" x="820" y="430">store.py · credit.py</text>
+
+  <path class="line" d="M226 461 V493"/><path class="line" d="M600 461 V493"/><path class="line" d="M973 461 V493"/>
+  <text class="eye muted" x="50" y="509">LEARNING + EVIDENCE</text>
+  <rect class="panel" x="50" y="526" width="260" height="98" rx="12"/><text class="h2 ink" x="73" y="556">Dataset builders</text><text class="small muted" x="73" y="578">feature-only labels + replay</text><text class="mono accent" x="73" y="602">scripts/</text>
+  <rect class="panel" x="329" y="526" width="260" height="98" rx="12"/><text class="h2 ink" x="352" y="556">Training configs</text><text class="small muted" x="352" y="578">MLX-VLM + LEAP candidate</text><text class="mono accent" x="352" y="602">train/ · patches/</text>
+  <rect class="panel" x="608" y="526" width="260" height="98" rx="12"/><text class="h2 ink" x="631" y="556">Evaluation gate</text><text class="small muted" x="631" y="578">held-out metrics + promotion rules</text><text class="mono accent" x="631" y="602">eval.py · live_eval.py</text>
+  <rect class="panel" x="887" y="526" width="263" height="98" rx="12"/><text class="h2 ink" x="910" y="556">Receipts</text><text class="small muted" x="910" y="578">authored local validation reports</text><text class="mono amber" x="910" y="602">outputs/*.md</text>
+  <text class="small green" x="50" y="654">Executable + tested</text><text class="small muted" x="175" y="654">does not mean production-deployed, broadly generalizing, or causally validated</text>
+</svg>

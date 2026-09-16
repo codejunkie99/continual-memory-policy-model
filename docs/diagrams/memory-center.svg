@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660" role="img" aria-labelledby="title desc">
+  <title id="title">Memory Center interface map</title>
+  <desc id="desc">The read-only dashboard connects five plain-language views to the event-sourced memory database and keeps promotion controls outside the browser.</desc>
+  <defs><style>
+    .bg{fill:#f6f6f8}.panel{fill:#fff;stroke:#dedee4;stroke-width:1.5}.rail{fill:#fafafb;stroke:#dedee4}.selected{fill:#ececf7}.ink{fill:#252529}.muted{fill:#74747d}.accent{fill:#6e75bf}.good{fill:#39785a}.amber{fill:#946e2d}.red{fill:#a74444}.line{fill:none;stroke:#b9b9c3;stroke-width:1.8;marker-end:url(#a)}text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.h1{font-size:29px;font-weight:700;letter-spacing:-.5px}.h2{font-size:15px;font-weight:700}.body{font-size:12.5px}.small{font-size:11px}.eyebrow{font-size:11px;font-weight:700;letter-spacing:1.2px}.mono{font-family:ui-monospace,Menlo,monospace;font-size:10.5px}
+  </style><marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0v6l8-3z" fill="#b9b9c3"/></marker></defs>
+  <rect class="bg" width="1200" height="660" rx="18"/>
+  <text class="eyebrow accent" x="50" y="44">READ-ONLY INSPECTION</text><text class="h1 ink" x="50" y="79">Memory Center turns internals into answers</text>
+  <text class="body muted" x="50" y="105">Every summary opens into evidence: source, revisions, recalls, outcomes, credit, and the policy decision.</text>
+
+  <rect class="panel" x="46" y="136" width="800" height="476" rx="14"/>
+  <rect class="rail" x="46" y="136" width="188" height="476" rx="14"/>
+  <circle class="accent" cx="73" cy="168" r="7"/><text class="h2 ink" x="91" y="174">Memory Center</text>
+  <rect class="selected" x="61" y="211" width="158" height="34" rx="7"/><text class="body ink" x="84" y="232">Overview</text>
+  <text class="body muted" x="84" y="274">Memories</text><text class="body muted" x="84" y="314">Decisions</text><text class="body muted" x="84" y="354">History</text><text class="body muted" x="84" y="408">Learning</text>
+  <circle class="good" cx="72" cy="570" r="4"/><text class="small ink" x="84" y="574">Local only</text><text class="small muted" x="61" y="593">Browser cannot mutate data</text>
+  <line x1="234" y1="184" x2="846" y2="184" stroke="#dedee4"/>
+  <text class="small muted" x="262" y="166">MPM / Overview</text><rect class="selected" x="741" y="151" width="78" height="22" rx="11"/><text class="small accent" x="754" y="166">Experimental</text>
+  <text class="eyebrow accent" x="271" y="225">LOCAL MEMORY SYSTEM</text><text class="h1 ink" x="271" y="261">Memory overview</text>
+  <text class="body muted" x="271" y="285">8 ready to recall · 1 needs review · 5 awaiting a result</text>
+  <rect x="271" y="315" width="538" height="73" rx="9" fill="#fff" stroke="#d8a6a6"/><rect x="271" y="315" width="3" height="73" rx="2" fill="#a74444"/>
+  <text class="h2 ink" x="292" y="343">1 memory is linked to worse results</text><text class="small muted" x="292" y="363">Review the outcome and the credit it received.</text>
+  <rect class="panel" x="271" y="412" width="538" height="79" rx="11"/><line x1="405" y1="412" x2="405" y2="491" stroke="#dedee4"/><line x1="540" y1="412" x2="540" y2="491" stroke="#dedee4"/><line x1="674" y1="412" x2="674" y2="491" stroke="#dedee4"/>
+  <text class="h1 ink" x="291" y="447">8</text><text class="small muted" x="291" y="469">Ready</text><text class="h1 ink" x="425" y="447">2</text><text class="small muted" x="425" y="469">Helpful</text><text class="h1 ink" x="560" y="447">5</text><text class="small muted" x="560" y="469">Unknown</text><text class="h1 ink" x="694" y="447">1</text><text class="small muted" x="694" y="469">Review</text>
+  <text class="h2 ink" x="271" y="532">Recent activity</text><line x1="271" y1="546" x2="809" y2="546" stroke="#dedee4"/><text class="small muted" x="271" y="569">14 hours ago</text><text class="body ink" x="388" y="569">Registered a learning version</text><line x1="271" y1="585" x2="809" y2="585" stroke="#dedee4"/>
+
+  <path class="line" d="M856 229 H902"/><rect class="panel" x="914" y="151" width="238" height="104" rx="12"/><text class="h2 ink" x="936" y="181">Plain-language answer</text><text class="small muted" x="936" y="203">What is remembered?</text><text class="small muted" x="936" y="220">Did it help?</text><text class="small muted" x="936" y="237">What needs review?</text>
+  <path class="line" d="M856 375 H902"/><rect class="panel" x="914" y="278" width="238" height="194" rx="12"/><text class="h2 ink" x="936" y="308">Evidence underneath</text><text class="small muted" x="936" y="334">Memory revisions</text><text class="small muted" x="936" y="355">Retrieval IDs and rank</text><text class="small muted" x="936" y="376">Task outcomes</text><text class="small muted" x="936" y="397">Delayed credit ledger</text><text class="small muted" x="936" y="418">Policy rationale</text><text class="small muted" x="936" y="439">Raw event record</text>
+  <path class="line" d="M856 535 H902"/><rect x="914" y="494" width="238" height="98" rx="12" fill="#ececf7" stroke="#c9cae8"/><text class="h2 ink" x="936" y="525">Consequential actions stay out</text><text class="small muted" x="936" y="548">Promotion, activation, rollback,</text><text class="small muted" x="936" y="566">and mutation remain CLI-only.</text>
+  <text class="mono red" x="50" y="640">VIEW ONLY  ·  LOOPBACK BY DEFAULT  ·  CREDIT IS EVIDENCE, NOT CAUSAL PROOF</text>
+</svg>
